@@ -1,0 +1,75 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Store AWS Billing info",
+  "Parameters": {
+    "DynamoDBTableName": {
+      "Type": "String",
+      "Description": "Name of DynamoDB for storing billing info"
+    },
+    "ServiceTagKey": {
+      "Type": "String",
+      "Description": "Name of tag for tracking service"
+    },
+    "ServiceTagValue": {
+      "Type": "String",
+      "Description": "Value of service tag."
+    }
+  },
+  "Resources": {
+    "DynamoDBTable": {
+      "Type": "AWS::DynamoDB::Table",
+      "Properties": {
+        "TableName": {
+          "Ref": "DynamoDBTableName"
+        },
+        "ProvisionedThroughput" : {
+          "ReadCapacityUnits" : "5",
+          "WriteCapacityUnits" : "5"
+        },
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "ProductName",
+            "AttributeType": "S"
+          },
+          {
+            "AttributeName": "UsageStartDate",
+            "AttributeType": "S"
+          }
+        ],
+        "KeySchema": [
+          {
+            "AttributeName": "ProductName",
+            "KeyType": "HASH"
+          },
+          {
+            "AttributeName": "UsageStartDate",
+            "KeyType": "RANGE"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": {
+              "Ref": "ServiceTagKey"
+            },
+            "Value": {
+              "Ref": "ServiceTagValue"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "Outputs": {
+    "DynamoDBTableArn": {
+      "Description": "Lambda Function ARN.",
+      "Value": {
+        "Fn::Sub": "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${DynamoDBTableName}"
+      }
+    },
+    "TravisBuildNumber": {
+      "Description": "Travis build number.",
+      "Value": "0"
+    }
+  }
+}
+

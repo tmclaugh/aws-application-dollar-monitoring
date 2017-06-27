@@ -1,0 +1,135 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Retrieve and store AWS Billing info",
+  "Parameters": {
+    "DynamoDBTableName": {
+      "Type": "String",
+      "Description": "Name of DynamoDB for storing billing info",
+      "Default": "AwsAdmBillingData"
+    },
+    "BillingS3Bucket": {
+      "Type": "String",
+      "Description": "S3 Bucket containing billing info"
+    },
+    "DeployS3Bucket": {
+      "Type": "String",
+      "Description": "S3 bucket containing Lambda code.",
+      "Default": "straycat-dhs-org-straycat-lambda-deploys"
+    },
+    "DeployS3Key": {
+      "Type": "String",
+      "Description": "S3 key of deployable code.",
+      "Default": "aws-adm.zip"
+    },
+    "ServiceTagKey": {
+      "Type": "String",
+      "Description": "Name of tag for tracking service",
+      "Default": "local:service"
+    },
+    "ServiceStackName": {
+      "Type": "String",
+      "Description": "Value of service stack",
+      "Default": "aws-adm"
+    },
+    "UpdaterCFNStack": {
+      "Type": "String",
+      "Description": "Name of the updater CFn Stack.",
+      "Default": "aws-cfn-lambda-updater"
+    }
+  },
+  "Resources": {
+    "DynamoDB": {
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": {
+          "Fn::Sub": "https://s3.amazonaws.com/${DeployS3Bucket}/${ServiceStackName}-dynamodb.json"
+        },
+        "Parameters": {
+          "DynamoDBTableName": {
+            "Ref": "DynamoDBTableName"
+          },
+          "ServiceTagKey": {
+            "Ref": "ServiceTagKey"
+          },
+          "ServiceTagValue": {
+            "Ref": "ServiceStackName"
+          }
+        },
+        "Tags": [
+          {
+            "Key": {
+              "Ref": "ServiceTagKey"
+            },
+            "Value": {
+              "Ref": "ServiceStackName"
+            }
+          }
+        ]
+      }
+    },
+    "S3Retriever": {
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": {
+          "Fn::Sub": "https://s3.amazonaws.com/${DeployS3Bucket}/${ServiceStackName}-s3-retriever.json"
+        },
+        "Parameters": {
+          "DeployS3Bucket": {
+            "Ref": "DeployS3Bucket"
+          },
+          "DeployS3Key": {
+            "Ref": "DeployS3Key"
+          },
+          "BillingS3Bucket": {
+            "Ref": "BillingS3Bucket"
+          },
+          "UpdaterCFNStack": {
+            "Ref": "UpdaterCFNStack"
+          },
+          "ServiceTagKey": {
+            "Ref": "ServiceTagKey"
+          },
+          "ServiceTagValue": {
+            "Ref": "ServiceStackName"
+          },
+          "DynamoDBTableArn": {
+            "Fn::GetAtt": ["DynamoDB", "Outputs.DynamoDBTableArn"]
+          }
+        },
+        "Tags": [
+          {
+            "Key": {
+              "Ref": "ServiceTagKey"
+            },
+            "Value": {
+              "Ref": "ServiceStackName"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "Outputs": {
+    "DynamoDBTableArn": {
+      "Description": "DynamoDB Table ARN.",
+      "Value": {
+        "Fn::GetAtt": ["DynamoDB", "Outputs.DynamoDBTableArn"]
+      }
+    },
+    "S3RetrieverLambdaArn": {
+      "Description": "S3 Retriever Lambda Function ARN.",
+      "Value": {
+        "Fn::GetAtt": ["S3Retriever", "Outputs.LambdaArn"]
+      }
+    },
+    "LambdaCodeSha256": {
+      "Description": "Lambda code SHA256.",
+      "Value": ""
+    },
+    "TravisBuildNumber": {
+      "Description": "Travis build number.",
+      "Value": "0"
+    }
+  }
+}
+

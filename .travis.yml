@@ -1,0 +1,37 @@
+language: python
+python:
+- '3.6'
+install: pip install -r requirements.txt -t .
+script:
+- python -m json.tool deploy/cloudformation.json
+- python -m json.tool deploy/cloudformation-dynamodb.json
+- python -m json.tool deploy/cloudformation-s3-retriever.json
+after_success:
+- mkdir dist
+- find ./ -name '*.pyc' -delete
+- zip -r dist/aws-adm.zip . -x '.git/*' -x 'dist/*'
+- cp deploy/cloudformation.json dist/aws-adm.json
+- python -c "import json, sys; cfn=json.load(sys.stdin); cfn['Outputs']['LambdaCodeSha256']['Value'] = '$(openssl dgst -binary -sha256 dist/aws-cfn-lambda-updater.zip | openssl base64)'; json.dump(cfn, sys.stdout, indent=2)" < dist/aws-adm.json > dist/aws-adm.json.new; mv dist/aws-adm.json{.new,}
+- python -c "import json, sys; cfn=json.load(sys.stdin); cfn['Outputs']['TravisBuildNumber']['Value'] = ${TRAVIS_BUILD_NUMBER}; json.dump(cfn, sys.stdout, indent=2)" < dist/aws-adm.json > dist/aws-adm.json.new; mv dist/aws-adm.json{.new,}
+# Lambda S3 retriever
+- cp deploy/cloudformation-s3-retriever.json dist/aws-adm-s3-retriever.json
+- python -c "import json, sys; cfn=json.load(sys.stdin); cfn['Resources']['LambdaInvokeUpdater']['Properties']['CodeSha256'] = '$(openssl dgst -binary -sha256 dist/aws-cfn-lambda-updater.zip | openssl base64)'; json.dump(cfn, sys.stdout, indent=2)" < dist/aws-adm-s3-retriever.json > dist/aws-adm-s3-retriever.json.new; mv dist/aws-adm-s3-retriever.json{.new,}
+- python -c "import json, sys; cfn=json.load(sys.stdin); cfn['Resources']['LambdaInvokeUpdater']['Properties']['TravisBuildNumber'] = ${TRAVIS_BUILD_NUMBER}; json.dump(cfn, sys.stdout, indent=2)" < dist/aws-adm-s3-retriever.json > dist/aws-adm-s3-retriever.json.new; mv dist/aws-adm-s3-retriever.json{.new,}
+- python -c "import json, sys; cfn=json.load(sys.stdin); cfn['Outputs']['LambdaCodeSha256']['Value'] = '$(openssl dgst -binary -sha256 dist/aws-cfn-lambda-updater.zip | openssl base64)'; json.dump(cfn, sys.stdout, indent=2)" < dist/aws-adm-s3-retriever.json > dist/aws-adm-s3-retriever.json.new; mv dist/aws-adm-s3-retriever.json{.new,}
+- python -c "import json, sys; cfn=json.load(sys.stdin); cfn['Outputs']['TravisBuildNumber']['Value'] = ${TRAVIS_BUILD_NUMBER}; json.dump(cfn, sys.stdout, indent=2)" < dist/aws-adm-s3-retriever.json > dist/aws-adm-s3-retriever.json.new; mv dist/aws-adm-s3-retriever.json{.new,}
+# DynamoDB
+- cp deploy/cloudformation-dynamodb.json dist/aws-adm-dynamodb.json
+- python -c "import json, sys; cfn=json.load(sys.stdin); cfn['Outputs']['TravisBuildNumber']['Value'] = ${TRAVIS_BUILD_NUMBER}; json.dump(cfn, sys.stdout, indent=2)" < dist/aws-adm-dynamodb.json > dist/aws-adm-dynamodb.json.new; mv dist/aws-adm-dynamodb.json{.new,}
+- ls -al dist
+deploy:
+  skip_cleanup: true
+  provider: s3
+  access_key_id:
+    secure: "h2WI09hb/s+EoZFNLW5hTWPhZb80c3572TOMJxDHF0vYvmsMkdY6pfb01lCv5Aw8OTOwy45jyIGfbGjN3DL441iCv7kSj5afzWjYeQp/P5Yzod7KNGx1QS8vWzeF7ohAC1i+GkVuTIrsd0TMgghlstKZCa2n4lYwsqOubdeE6aFXSej9jGeuYGxBjBKXbioCAuu9lcu664WJgPzKTSG0f/cDw5QIKo+xtiIMdoHiS86RkBbNaSkBB1S26n6wqtKVE+197K5TXs8AV2zrddpJBpRFZmLGvUIKcP5Yw4M8HgQuI73AdREsip4oBTihyFAAKhY3TCuH/XY4kAdZBI1PpKP9pCSO9+4C/aa/2UyJeD5FBUKZjEUsvqQ6vuhB1u9//6m9Su6J1EtBQKeuhwdFWjVchXy4OLItJKT+dcYCKJ9qAP4ROkIPH0Mne/X4jpdVc9gYlzY/dbOSY6CNeQTWX+KdzbFhMtYp9pQgobJ3mZYIAlYX82BMcqlss7fl8yR9h9zpP3Lg8/OS+FHA8imZJ3JZm/uOJTBFNLPYRq9jGndUqoKuwQShsk/+I0G7MRl98DiW9BakGQZVThrCEMzj0Lg4gcjJX1DtNjaPBjcJBt37mAKH1KBPpGNiZ17fHFIK95ws6ebrpzWOQX8NoLAheynApxTIIdlGeEyCDtuqWL4="
+  secret_access_key:
+    secure: "TIy8/RLHQaxiUMO2DRas2/Fg7QUF4/2OhQbW/SIeD63yc8C9XbZb7cY96WVUWs2YUiu7gRdkziQlZS9w1WNlEX/l8DqzwXy2FUlmJBAvDF+gmhbs56gzF+57DXcMXz6DH7XjeFg0vK/V46+P21c50no/wIh5I4MT9p//CfZliNQQMMlYCeRU4gSFZLKLg9H1Z7z9hSA2Bekuog7gVIdQb5/G1sd65+y0SagO1stOnn3aQLMT3DUvC9v/m8+QM0UEg5K7pdJGEYOM0df9qO67hb8ehDgfds8W5C6JZa2YpNVpHaStFUK8jh8pHjip/r8B+0nEenK8aqm+SYDZAZA1HmyxrmqJ8+DromZVP6Kh4mWxh6LXBA6Hz7qjEP/dBYIpP6WzPS6DBE/Z40aS8oKZh5NW+wuRhNkWJd9vF0D5mSmyjtgwi8XmFvgW7G9BTvKGDB4SKq1DmWrENDK7IvfhTk2k4V6/tE6HsuufQNCZv2DgRKNEb0XAz5/XzWb3EfgMm0xVyaHR3bVn5bDH1FuB0VrJouPd504M6x5KFAomfAioiA2v/7akp6bqVQobo1UUksYU7Gh5/kzFNnWEMDM58j1RzbUJbFFX2cmCKCfS3oJKufu20lomCdEgMp3z7F+mYENqIcusSP/W4VdWsZIBNkHXRZAfQpsmmG4rzJcwa1E="
+  bucket: straycat-dhs-org-straycat-lambda-deploys
+  local-dir: dist
+  acl: public_read
+  on:
+    repo: tmclaugh/aws-application-dollar-monitoring
