@@ -63,11 +63,11 @@ def _get_billing_data_from_event_record(record, start_line_item=None, end_line_i
 
     _logger.debug(
         'billing data: {}'.format(
-            json.dumps(billing_data_items_list[start_line_item:end_line_item])
+            json.dumps(billing_data_items_list)
         )
     )
 
-    return billing_data_items_list
+    return billing_data_items_list[start_line_item:end_line_item]
 
 def handler(event, context):
     '''
