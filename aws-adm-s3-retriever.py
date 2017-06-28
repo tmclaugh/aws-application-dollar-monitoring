@@ -17,10 +17,14 @@ _logger = logging.getLogger(__name__)
 
 def _extract_file_object(fileobj, filename):
     '''
-    Return an uncompressed file object
+    Return an uncompressed file-like object.
     '''
     zip_file = zipfile.ZipFile(fileobj)
-    return zip_file.open(filename)
+    file_data = zip_file.read(filename)
+    file_data_string = file_data.decode()
+
+    # We're dealing with CSV files so just convert to string here.
+    return io.StringIO(file_data_string)
 
 def _fetch_object(bucket, key):
     '''
