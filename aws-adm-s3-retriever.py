@@ -15,7 +15,14 @@ if os.environ.get('DEBUG'):
     logging.root.setLevel(level=logging.DEBUG)
 _logger = logging.getLogger(__name__)
 
-def _fetch_billing_file(bucket, key):
+def _extract_file_object(fileobj, filename):
+    '''
+    Return an uncompressed file object
+    '''
+    zip_file = zipfile.ZipFile(fileobj)
+    return zip_file.open(filename)
+
+def _fetch_object(bucket, key):
     '''
     Fetch a file from a URL and return a file-like object.
     '''
@@ -49,7 +56,11 @@ def handler(event, context):
         s3_bucket = s3_info.get('bucket').get('name')
         s3_key = s3_info.get('object').get('key')
 
-        billing_file = _fetch_billing_file(s3_bucket, s3_key)
+        billing_file_zip = _fetch_object(s3_bucket, s3_key)
+        billing_file = _extract_file_object(
+            billing_file_zip,
+            '.'.join(s3_key.split('.')[:-1])
+        )
         billing_data_items = csv.DictReader(billing_file)
 
         billing_data = []
