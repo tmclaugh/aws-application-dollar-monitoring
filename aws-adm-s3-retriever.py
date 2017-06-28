@@ -1,5 +1,6 @@
 import boto3
 import csv
+import json
 import logging
 from logging.config import fileConfig
 import io
@@ -18,6 +19,7 @@ def _fetch_billing_file(bucket, key):
     '''
     Fetch a file from a URL and return a file-like object.
     '''
+    _logger.debug('Fetching object; Bucket={}, Key={}'.format(bucket, key))
     s3_client = boto3.client('s3')
     s3_object = s3_client.get_object(Bucket=bucket, Key=key)
     s3_object_body = s3_object.get('Body').read()
@@ -31,6 +33,7 @@ def handler(event, context):
     '''
     Retrieve Billing data from S3 and send data to S3.
     '''
+    _logger.info('S3 event received: {}'.format(json.dumps(event)))
     # We assume that events are properly filtered at the trigger level.
     event_records = event.get('Records')
 
@@ -40,12 +43,18 @@ def handler(event, context):
 
     billing_data_total = []
     for record in event_records:
+        _logger.debug('processing record: {}'.format(json.dumps(record)))
         s3_info = record.get('s3')
         s3_bucket = s3_info.get('bucket').get('name')
         s3_key = s3_info.get('object').get('key')
 
         billing_file = _fetch_billing_file(s3_bucket, s3_key)
         billing_data = csv.DictReader(billing_file)
+        _logger.debug(
+            'billing data: {}'.format(
+                json.dumps(billing_data[start_line_item:end_line_item])
+            )
+        )
 
         return billing_data_total.extend(billing_data)
 
