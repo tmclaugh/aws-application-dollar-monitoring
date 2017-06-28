@@ -41,6 +41,7 @@ def handler(event, context):
     start_line_item = event.get('StartLineItem')
     end_line_item = event.get('EndLineItem')
 
+    # This will be a list of OrderedDict items from the csv.DictReader()
     billing_data_total = []
     for record in event_records:
         _logger.debug('processing record: {}'.format(json.dumps(record)))
@@ -49,14 +50,18 @@ def handler(event, context):
         s3_key = s3_info.get('object').get('key')
 
         billing_file = _fetch_billing_file(s3_bucket, s3_key)
-        billing_data = csv.DictReader(billing_file)
+        billing_data_items = csv.DictReader(billing_file)
+
+        billing_data = []
+        for row in billing_data_items:
+            billing_data.append(row)
+
         _logger.debug(
             'billing data: {}'.format(
                 json.dumps(billing_data[start_line_item:end_line_item])
             )
         )
-
-        return billing_data_total.extend(billing_data)
+        billing_data_total.extend(billing_data)
 
     return billing_data_total[start_line_item:end_line_item]
 
