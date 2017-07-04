@@ -144,6 +144,53 @@
           }
         ]
       }
+    },
+    "SnsToDynamoDB": {
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": {
+          "Fn::Sub": "https://s3.amazonaws.com/${DeployS3Bucket}/${ServiceStackName}-lambda-sns-to-dynamodb.json"
+        },
+        "Parameters": {
+          "DeployS3Bucket": {
+            "Ref": "DeployS3Bucket"
+          },
+          "DeployS3Key": {
+            "Ref": "DeployS3Key"
+          },
+          "BillingS3Bucket": {
+            "Ref": "BillingS3Bucket"
+          },
+          "UpdaterCFNStack": {
+            "Ref": "UpdaterCFNStack"
+          },
+          "ServiceTagKey": {
+            "Ref": "ServiceTagKey"
+          },
+          "ServiceTagValue": {
+            "Ref": "ServiceStackName"
+          },
+          "DynamoDBTableName": {
+            "Ref": "DynamoDBTableName"
+          },
+          "SnsTopicToDataStoreArn": {
+            "Fn::GetAtt": ["SnsToDataStore", "Outputs.SnsTopicArn"]
+          },
+          "DynamoDBWriteManagedPolicyArn": {
+            "Fn::GetAtt": ["DynamoDB", "Outputs.DynamoDBWriteManagedPolicyArn"]
+          }
+        },
+        "Tags": [
+          {
+            "Key": {
+              "Ref": "ServiceTagKey"
+            },
+            "Value": {
+              "Ref": "ServiceStackName"
+            }
+          }
+        ]
+      }
     }
   },
   "Outputs": {
@@ -163,6 +210,12 @@
       "Description": "SNS topic to datastore ARN.",
       "Value": {
         "Fn::GetAtt": ["SnsToDataStore", "Outputs.SnsTopicArn"]
+      }
+    },
+    "SnsToDynamoDBLambdaArn": {
+      "Description": "SNS to DynamoDB Lambda Function ARN.",
+      "Value": {
+        "Fn::GetAtt": ["SnsToDynamoDB", "Outputs.LambdaArn"]
       }
     },
     "LambdaCodeSha256": {

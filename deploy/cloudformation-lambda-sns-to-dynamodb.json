@@ -1,0 +1,238 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Store billing data in DynamoDB",
+  "Parameters": {
+    "LambdaName": {
+      "Type": "String",
+      "Description": "Name of Lambda function",
+      "Default": "aws-adm-sns-to-dynamodb"
+    },
+    "LambdaDescription": {
+      "Type": "String",
+      "Description": "Description of Lambda Function",
+      "Default": "Store billing data in DynamoDB"
+    },
+    "LambdaHandler": {
+      "Type": "String",
+      "Description": "Lambda handler function name",
+      "Default": "aws-adm-sns-to-dynamodb.handler"
+    },
+    "LambdaMemorySize": {
+      "Type": "String",
+      "Description": "Lambda memory size",
+      "Default": "128"
+    },
+    "LambdaTimeout": {
+      "Type": "String",
+      "Description": "Lambda timeout",
+      "Default": "30"
+    },
+    "DeployS3Bucket": {
+      "Type": "String",
+      "Description": "S3 bucket containing Lambda code."
+    },
+    "DeployS3Key": {
+      "Type": "String",
+      "Description": "S3 key of deployable code."
+    },
+    "BillingS3Bucket": {
+      "Type": "String",
+      "Description": "S3 Bucket containing billing info"
+    },
+    "UpdaterCFNStack": {
+      "Type": "String",
+      "Description": "Name of the updater CFN Stack."
+    },
+    "ServiceTagKey": {
+      "Type": "String",
+      "Description": "Name of tag for tracking service"
+    },
+    "ServiceTagValue": {
+      "Type": "String",
+      "Description": "Value of service tag."
+    },
+    "SnsTopicToDataStoreArn": {
+      "Type": "String",
+      "Description": "ARN of SNS topic for datastore messages."
+    },
+    "DynamoDBTableName": {
+      "Type": "String",
+      "Description": "Name of DynamoDB table to store billing data"
+    },
+    "DynamoDBWriteManagedPolicyArn": {
+      "Type": "String",
+      "Description": "ARN of managed policy for DynamoDB write access."
+    }
+  },
+  "Resources": {
+    "LambdaIamRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": {
+          "Fn::Sub": "Lambda-${LambdaName}"
+        },
+        "Path": "/service-role/",
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "ManagedPolicyArns": [
+          {
+            "Ref": "DynamoDBWriteManagedPolicyArn"
+          }
+        ]
+      }
+    },
+    "LambdaIamPolicy": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyName": "LambdaExecutionPolicy",
+        "Roles": [
+          {
+            "Ref": "LambdaIamRole"
+          }
+        ],
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": "logs:CreateLogGroup",
+              "Resource": {
+                "Fn::Sub": "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*"
+              }
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "logs:CreateLogStream",
+                "logs:PutLogEvents"
+              ],
+              "Resource": [
+                {
+                  "Fn::Sub": "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${LambdaName}:*"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "LambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Ref": "DeployS3Bucket"
+          },
+          "S3Key": {
+            "Ref": "DeployS3Key"
+          }
+        },
+        "Description": {
+          "Ref": "LambdaDescription"
+        },
+        "Environment": {
+          "Variables": {
+            "DYNAMODB_TABLE_NAME": {
+              "Ref": "DynamoDBTableName"
+            }
+          }
+        },
+        "FunctionName": {
+          "Ref": "LambdaName"
+        },
+        "Handler": {
+          "Ref": "LambdaHandler"
+        },
+        "MemorySize": {
+          "Ref": "LambdaMemorySize"
+        },
+        "Role": {
+          "Fn::GetAtt": [
+            "LambdaIamRole",
+            "Arn"
+          ]
+        },
+        "Runtime": "python3.6",
+        "Timeout": {
+          "Ref": "LambdaTimeout"
+        },
+        "Tags": [
+          {
+            "Key": {
+              "Ref": "ServiceTagKey"
+            },
+            "Value": {
+              "Ref": "ServiceTagValue"
+            }
+          }
+        ]
+      }
+    },
+    "LambdaInvokeUpdater": {
+      "Type": "Custom::LambdaUpdaterInvoke",
+      "Properties": {
+        "ServiceToken":{
+          "Fn::ImportValue": {
+            "Fn::Sub": "${UpdaterCFNStack}-LambdaFunctionArn"
+          }
+        },
+        "FunctionName": {
+          "Ref": "LambdaName"
+        },
+        "FunctionZipFileUrl": {
+          "Fn::Sub": "https://s3.amazonaws.com/${DeployS3Bucket}/${DeployS3Key}"
+        }
+      },
+      "DependsOn": [
+        "LambdaFunction"
+      ]
+    },
+    "SnsSubscription": {
+      "Type": "AWS::SNS::Subscription",
+      "Properties": {
+        "TopicArn": {
+          "Ref": "SnsTopicToDataStoreArn"
+        },
+        "Protocol": "lambda",
+        "Endpoint": {
+          "Fn::GetAtt": ["LambdaFunction", "Arn"]
+        }
+      },
+      "DependsOn": [
+        "LambdaIamRole",
+        "LambdaIamPolicy"
+      ]
+    }
+  },
+  "Outputs": {
+    "LambdaArn": {
+      "Description": "Lambda Function ARN.",
+      "Value": {
+        "Fn::GetAtt": ["LambdaFunction", "Arn"]
+      },
+      "Export": {
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}-LambdaFunctionArn"
+        }
+      }
+    },
+    "LambdaCodeSha256": {
+      "Description": "Lambda code SHA256.",
+      "Value": ""
+    },
+    "TravisBuildNumber": {
+      "Description": "Travis build number.",
+      "Value": "0"
+    }
+  }
+}

@@ -6,6 +6,8 @@ script:
 - python -m json.tool deploy/cloudformation.json
 - python -m json.tool deploy/cloudformation-dynamodb.json
 - python -m json.tool deploy/cloudformation-lambda-s3-retriever.json
+- python -m json.tool deploy/cloudformation-lambda-sns-to-dynamodb.json
+- python -m json.tool deploy/cloudformation-sns-to-datastore.json
 after_success:
 - mkdir dist
 - find ./ -name '*.pyc' -delete
@@ -25,6 +27,12 @@ after_success:
 # SNS To Datastore
 - cp deploy/cloudformation-sns-to-datastore.json dist/aws-adm-sns-to-datastore.json
 - python -c "import json, sys; cfn=json.load(sys.stdin); cfn['Outputs']['TravisBuildNumber']['Value'] = ${TRAVIS_BUILD_NUMBER}; json.dump(cfn, sys.stdout, indent=2)" < dist/aws-adm-sns-to-datastore.json > dist/aws-adm-sns-to-datastore.json.new; mv dist/aws-adm-sns-to-datastore.json{.new,}
+# Lambda SNS to DynamoDB
+- cp deploy/cloudformation-lambda-sns-to-dynamodb.json dist/aws-adm-lambda-sns-to-dynamodb.json
+- python -c "import json, sys; cfn=json.load(sys.stdin); cfn['Resources']['LambdaInvokeUpdater']['Properties']['CodeSha256'] = '$(openssl dgst -binary -sha256 dist/aws-cfn-lambda-updater.zip | openssl base64)'; json.dump(cfn, sys.stdout, indent=2)" < dist/aws-adm-lambda-sns-to-dynamodb.json > dist/aws-adm-lambda-sns-to-dynamodb.json.new; mv dist/aws-adm-lambda-sns-to-dynamodb.json{.new,}
+- python -c "import json, sys; cfn=json.load(sys.stdin); cfn['Resources']['LambdaInvokeUpdater']['Properties']['TravisBuildNumber'] = ${TRAVIS_BUILD_NUMBER}; json.dump(cfn, sys.stdout, indent=2)" < dist/aws-adm-lambda-sns-to-dynamodb.json > dist/aws-adm-lambda-sns-to-dynamodb.json.new; mv dist/aws-adm-lambda-sns-to-dynamodb.json{.new,}
+- python -c "import json, sys; cfn=json.load(sys.stdin); cfn['Outputs']['LambdaCodeSha256']['Value'] = '$(openssl dgst -binary -sha256 dist/aws-cfn-lambda-updater.zip | openssl base64)'; json.dump(cfn, sys.stdout, indent=2)" < dist/aws-adm-lambda-sns-to-dynamodb.json > dist/aws-adm-lambda-sns-to-dynamodb.json.new; mv dist/aws-adm-lambda-sns-to-dynamodb.json{.new,}
+- python -c "import json, sys; cfn=json.load(sys.stdin); cfn['Outputs']['TravisBuildNumber']['Value'] = ${TRAVIS_BUILD_NUMBER}; json.dump(cfn, sys.stdout, indent=2)" < dist/aws-adm-lambda-sns-to-dynamodb.json > dist/aws-adm-lambda-sns-to-dynamodb.json.new; mv dist/aws-adm-lambda-sns-to-dynamodb.json{.new,}
 - ls -al dist
 deploy:
   skip_cleanup: true

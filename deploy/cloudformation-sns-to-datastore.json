@@ -71,29 +71,6 @@
         "SnsTopic"
       ]
     },
-    "SnsConfirmIamManagedPolicy": {
-      "Type": "AWS::IAM::ManagedPolicy",
-      "Properties": {
-        "Description": "Confirm SNS topic subscription",
-        "PolicyDocument": {
-          "Version": "2012-10-17",
-          "Statement": [
-            {
-              "Sid": "SnsConfirmation",
-              "Effect": "Allow",
-              "Action": [
-                "sns:ConfirmSubscription"
-              ],
-              "Resource": [
-                {
-                  "Ref": "SnsTopic"
-                }
-              ]
-            }
-          ]
-        }
-      }
-    },
     "SnsPublishIamManagedPolicy": {
       "Type": "AWS::IAM::ManagedPolicy",
       "Properties": {
@@ -128,17 +105,6 @@
       "Export": {
         "Name": {
           "Fn::Sub": "${AWS::StackName}-SnsTopicArn"
-        }
-      }
-    },
-    "SnsConfirmIamManagedPolicyArn": {
-      "Description": "SNS Confirm managed policy ARN",
-      "Value": {
-        "Ref": "SnsConfirmIamManagedPolicy"
-      },
-      "Export": {
-        "Name": {
-          "Fn::Sub": "${AWS::StackName}-SnsConfirmIamManagedPolicyArn"
         }
       }
     },
