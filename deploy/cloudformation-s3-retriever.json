@@ -20,7 +20,7 @@
     "LambdaMemorySize": {
       "Type": "String",
       "Description": "Lambda memory size",
-      "Default": "128"
+      "Default": "1028"
     },
     "LambdaTimeout": {
       "Type": "String",
