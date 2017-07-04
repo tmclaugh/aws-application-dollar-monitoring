@@ -51,13 +51,13 @@
       "Type": "String",
       "Description": "Value of service tag."
     },
-    "DynamoDBTableName": {
+    "SnsPublishIamManagedPolicyArn": {
       "Type": "String",
-      "Description": "DynamoDB Table Name."
+      "Description": "ARN of IAM policy that allows publishing to SNS topic."
     },
-    "DynamoDBTableArn": {
+    "SnsTopicToDataStoreArn": {
       "Type": "String",
-      "Description": "DynamoDB Table ARN."
+      "Description": "SNS Topic ARN for relaying billing event data to datastore."
     }
   },
   "Resources": {
@@ -79,7 +79,12 @@
               "Action": "sts:AssumeRole"
             }
           ]
-        }
+        },
+        "ManagedPolicyArns": [
+          {
+            "Ref": "SnsPublishIamManagedPolicyArn"
+          }
+        ]
       }
     },
     "LambdaIamPolicy": {
@@ -134,19 +139,6 @@
                   "Fn::Sub": "arn:aws:s3:::${BillingS3Bucket}/${AWS::AccountId}-aws-billing-detailed-line-items-with-resources-and-tags-*.csv.zip"
                 }
               ]
-            },
-            {
-              "Effect": "Allow",
-              "Action": [
-                "dynamodb:GetItem",
-                "dynamodb:PutItem",
-                "dynamodb:Query"
-              ],
-              "Resource": [
-                {
-                  "Ref": "DynamoDBTableArn"
-                }
-              ]
             }
           ]
         }
@@ -168,8 +160,8 @@
         },
         "Environment": {
           "Variables": {
-            "DYNAMODB_TABLE_NAME": {
-              "Ref": "DynamoDBTableName"
+            "SNS_TOPIC_ARN": {
+              "Ref": "SnsTopicToDataStoreArn"
             }
           }
         },

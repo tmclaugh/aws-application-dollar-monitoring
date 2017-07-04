@@ -31,6 +31,11 @@
       "Description": "Value of service stack",
       "Default": "aws-adm"
     },
+    "SnsTopicToDataStoreName": {
+      "Type": "String",
+      "Description": "SNS Topic for relaying billing event data to datastore.",
+      "Default": "aws-adm-datastore-messaging"
+    },
     "UpdaterCFNStack": {
       "Type": "String",
       "Description": "Name of the updater CFn Stack.",
@@ -92,11 +97,40 @@
           "ServiceTagValue": {
             "Ref": "ServiceStackName"
           },
-          "DynamoDBTableName": {
-            "Ref": "DynamoDBTableName"
+          "SnsPublishIamManagedPolicyArn": {
+            "Fn::GetAtt": ["SnsToDataStore", "Outputs.SnsPublishIamManagedPolicyArn"]
           },
-          "DynamoDBTableArn": {
-            "Fn::GetAtt": ["DynamoDB", "Outputs.DynamoDBTableArn"]
+          "SnsTopicToDataStoreArn": {
+            "Fn::GetAtt": ["SnsToDataStore", "Outputs.SnsTopicArn"]
+          }
+        },
+        "Tags": [
+          {
+            "Key": {
+              "Ref": "ServiceTagKey"
+            },
+            "Value": {
+              "Ref": "ServiceStackName"
+            }
+          }
+        ]
+      }
+    },
+    "SnsToDataStore": {
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": {
+          "Fn::Sub": "https://s3.amazonaws.com/${DeployS3Bucket}/${ServiceStackName}-sns-to-datastore.json"
+        },
+        "Parameters": {
+          "SnsTopicToDataStoreName": {
+            "Ref": "SnsTopicToDataStoreName"
+          },
+          "ServiceTagKey": {
+            "Ref": "ServiceTagKey"
+          },
+          "ServiceTagValue": {
+            "Ref": "ServiceStackName"
           }
         },
         "Tags": [
@@ -123,6 +157,12 @@
       "Description": "S3 Retriever Lambda Function ARN.",
       "Value": {
         "Fn::GetAtt": ["S3Retriever", "Outputs.LambdaArn"]
+      }
+    },
+    "SnsTopicToDataStoreArn": {
+      "Description": "SNS topic to datastore ARN.",
+      "Value": {
+        "Fn::GetAtt": ["SnsToDataStore", "Outputs.SnsTopicArn"]
       }
     },
     "LambdaCodeSha256": {

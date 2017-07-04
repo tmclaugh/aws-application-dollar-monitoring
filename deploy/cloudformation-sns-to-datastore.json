@@ -1,0 +1,162 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Send AWS billing info messaging to datastore",
+  "Parameters": {
+    "SnsTopicToDataStoreName": {
+      "Type": "String",
+      "Description": "SNS Topic for relaying billing event data to datastore."
+    },
+    "ServiceTagKey": {
+      "Type": "String",
+      "Description": "Name of tag for tracking service"
+    },
+    "ServiceTagValue": {
+      "Type": "String",
+      "Description": "Value of service tag."
+    }
+  },
+  "Resources": {
+    "SnsTopic": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "TopicName": {
+          "Ref": "SnsTopicToDataStoreName"
+        }
+      }
+    },
+    "SnsTopicPolicy": {
+      "Type": "AWS::SNS::TopicPolicy",
+      "Properties": {
+        "PolicyDocument": {
+          "Version": "2008-10-17",
+          "Id": "__default_policy_ID",
+          "Statement": [
+            {
+              "Sid": "__default_statement_ID",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": "*"
+              },
+              "Action": [
+                "SNS:GetTopicAttributes",
+                "SNS:SetTopicAttributes",
+                "SNS:AddPermission",
+                "SNS:RemovePermission",
+                "SNS:DeleteTopic",
+                "SNS:Subscribe",
+                "SNS:ListSubscriptionsByTopic",
+                "SNS:Publish",
+                "SNS:Receive"
+              ],
+              "Resource": {
+                "Fn::Sub": "arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${SnsTopicToDataStoreName}"
+              },
+              "Condition": {
+                "StringEquals": {
+                  "AWS:SourceOwner": {
+                    "Ref": "AWS::AccountId"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "Topics": [
+          {
+            "Ref": "SnsTopic"
+          }
+        ]
+      },
+      "DependsOn": [
+        "SnsTopic"
+      ]
+    },
+    "SnsConfirmIamManagedPolicy": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "Description": "Confirm SNS topic subscription",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "SnsConfirmation",
+              "Effect": "Allow",
+              "Action": [
+                "sns:ConfirmSubscription"
+              ],
+              "Resource": [
+                {
+                  "Ref": "SnsTopic"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "SnsPublishIamManagedPolicy": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "Description": "Publish SNS messages",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "SnsPublish",
+              "Effect": "Allow",
+              "Action": [
+                "sns:GetTopicAttributes",
+                "sns:Publish"
+              ],
+              "Resource": [
+                {
+                  "Ref": "SnsTopic"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "SnsTopicArn": {
+      "Description": "ARN of SNS topic",
+      "Value": {
+        "Ref": "SnsTopic"
+      },
+      "Export": {
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}-SnsTopicArn"
+        }
+      }
+    },
+    "SnsConfirmIamManagedPolicyArn": {
+      "Description": "SNS Confirm managed policy ARN",
+      "Value": {
+        "Ref": "SnsConfirmIamManagedPolicy"
+      },
+      "Export": {
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}-SnsConfirmIamManagedPolicyArn"
+        }
+      }
+    },
+    "SnsPublishIamManagedPolicyArn": {
+      "Description": "SNS Publish managed policy ARN",
+      "Value": {
+        "Ref": "SnsPublishIamManagedPolicy"
+      },
+      "Export": {
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}-SnsPublishIamManagedPolicyArn"
+        }
+      }
+    },
+    "TravisBuildNumber": {
+      "Description": "Travis build number.",
+      "Value": "0"
+    }
+  }
+}
+

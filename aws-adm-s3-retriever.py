@@ -15,7 +15,7 @@ if os.environ.get('DEBUG'):
     logging.root.setLevel(level=logging.DEBUG)
 _logger = logging.getLogger(__name__)
 
-DYNAMODB_TABLE_NAME = os.environ.get('DYNAMODB_TABLE_NAME')
+SNS_TOPIC_ARN = os.environ.get('SNS_TOPIC_ARN')
 
 def _extract_zip_file_object(fileobj, filename):
     '''
@@ -73,7 +73,7 @@ def _get_billing_data_from_event_record(record, start_line_item=None, end_line_i
 
 def handler(event, context):
     '''
-    Retrieve Billing data from S3 and send data to S3.
+    Retrieve billing data from S3 and send data to SNS topic.
     '''
     _logger.info('S3 event received: {}'.format(json.dumps(event)))
     # We assume that events are properly filtered at the trigger level.
@@ -91,25 +91,13 @@ def handler(event, context):
             start_line_item,
             end_line_item
         )
+        billing_data_items_total.extend(billing_data_items)
 
-    billing_data_items_total.extend(billing_data_items)
-
-    # Start inserting DynamoDB entries
-    dynamodb_resource = boto3.resource('dynamodb')
-    dynamodb_table = dynamodb_resource.Table(DYNAMODB_TABLE_NAME)
-    dynamodb_client_responses = []
+    sns_client = boto3.client('sns')
+    sns_publish_responses = []
     for item in billing_data_items_total:
-        # DynamoDB can't have empty strings but csv.DictReader uses '' for
-        # empty fields.
-        for key, value in item.items():
-            if value == '':
-                item[key] = None
-        resp = dynamodb_table.put_item(Item=item)
-        _logger.debug(
-            'dynamodb response: {}'.format(
-                json.dumps(resp)
-            )
-        )
-        dynamodb_client_responses.append(resp)
+        resp = sns_client.publish(TopicArn=SNS_TOPIC_ARN, Message=json.dumps(item))
+        _logger.debug('SNS publish response: ()'.format(json.dumps(resp)))
+        sns_publish_responses.append(resp)
 
-    return dynamodb_client_responses
+    return sns_publish_responses

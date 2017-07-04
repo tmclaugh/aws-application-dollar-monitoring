@@ -22,6 +22,9 @@ after_success:
 # DynamoDB
 - cp deploy/cloudformation-dynamodb.json dist/aws-adm-dynamodb.json
 - python -c "import json, sys; cfn=json.load(sys.stdin); cfn['Outputs']['TravisBuildNumber']['Value'] = ${TRAVIS_BUILD_NUMBER}; json.dump(cfn, sys.stdout, indent=2)" < dist/aws-adm-dynamodb.json > dist/aws-adm-dynamodb.json.new; mv dist/aws-adm-dynamodb.json{.new,}
+# SNS To Datastore
+- cp deploy/cloudformation-sns-to-datastore.json dist/aws-adm-sns-to-datastore.json
+- python -c "import json, sys; cfn=json.load(sys.stdin); cfn['Outputs']['TravisBuildNumber']['Value'] = ${TRAVIS_BUILD_NUMBER}; json.dump(cfn, sys.stdout, indent=2)" < dist/aws-adm-sns-to-datastore.json > dist/aws-adm-sns-to-datastore.json.new; mv dist/aws-adm-sns-to-datastore.json{.new,}
 - ls -al dist
 deploy:
   skip_cleanup: true
