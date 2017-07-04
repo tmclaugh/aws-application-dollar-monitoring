@@ -5,7 +5,7 @@ install: pip install -r requirements.txt -t .
 script:
 - python -m json.tool deploy/cloudformation.json
 - python -m json.tool deploy/cloudformation-dynamodb.json
-- python -m json.tool deploy/cloudformation-s3-retriever.json
+- python -m json.tool deploy/cloudformation-lambda-s3-retriever.json
 after_success:
 - mkdir dist
 - find ./ -name '*.pyc' -delete
@@ -14,11 +14,11 @@ after_success:
 - python -c "import json, sys; cfn=json.load(sys.stdin); cfn['Outputs']['LambdaCodeSha256']['Value'] = '$(openssl dgst -binary -sha256 dist/aws-cfn-lambda-updater.zip | openssl base64)'; json.dump(cfn, sys.stdout, indent=2)" < dist/aws-adm.json > dist/aws-adm.json.new; mv dist/aws-adm.json{.new,}
 - python -c "import json, sys; cfn=json.load(sys.stdin); cfn['Outputs']['TravisBuildNumber']['Value'] = ${TRAVIS_BUILD_NUMBER}; json.dump(cfn, sys.stdout, indent=2)" < dist/aws-adm.json > dist/aws-adm.json.new; mv dist/aws-adm.json{.new,}
 # Lambda S3 retriever
-- cp deploy/cloudformation-s3-retriever.json dist/aws-adm-s3-retriever.json
-- python -c "import json, sys; cfn=json.load(sys.stdin); cfn['Resources']['LambdaInvokeUpdater']['Properties']['CodeSha256'] = '$(openssl dgst -binary -sha256 dist/aws-cfn-lambda-updater.zip | openssl base64)'; json.dump(cfn, sys.stdout, indent=2)" < dist/aws-adm-s3-retriever.json > dist/aws-adm-s3-retriever.json.new; mv dist/aws-adm-s3-retriever.json{.new,}
-- python -c "import json, sys; cfn=json.load(sys.stdin); cfn['Resources']['LambdaInvokeUpdater']['Properties']['TravisBuildNumber'] = ${TRAVIS_BUILD_NUMBER}; json.dump(cfn, sys.stdout, indent=2)" < dist/aws-adm-s3-retriever.json > dist/aws-adm-s3-retriever.json.new; mv dist/aws-adm-s3-retriever.json{.new,}
-- python -c "import json, sys; cfn=json.load(sys.stdin); cfn['Outputs']['LambdaCodeSha256']['Value'] = '$(openssl dgst -binary -sha256 dist/aws-cfn-lambda-updater.zip | openssl base64)'; json.dump(cfn, sys.stdout, indent=2)" < dist/aws-adm-s3-retriever.json > dist/aws-adm-s3-retriever.json.new; mv dist/aws-adm-s3-retriever.json{.new,}
-- python -c "import json, sys; cfn=json.load(sys.stdin); cfn['Outputs']['TravisBuildNumber']['Value'] = ${TRAVIS_BUILD_NUMBER}; json.dump(cfn, sys.stdout, indent=2)" < dist/aws-adm-s3-retriever.json > dist/aws-adm-s3-retriever.json.new; mv dist/aws-adm-s3-retriever.json{.new,}
+- cp deploy/cloudformation-lambda-s3-retriever.json dist/aws-adm-lambda-s3-retriever.json
+- python -c "import json, sys; cfn=json.load(sys.stdin); cfn['Resources']['LambdaInvokeUpdater']['Properties']['CodeSha256'] = '$(openssl dgst -binary -sha256 dist/aws-cfn-lambda-updater.zip | openssl base64)'; json.dump(cfn, sys.stdout, indent=2)" < dist/aws-adm-lambda-s3-retriever.json > dist/aws-adm-lambda-s3-retriever.json.new; mv dist/aws-adm-lambda-s3-retriever.json{.new,}
+- python -c "import json, sys; cfn=json.load(sys.stdin); cfn['Resources']['LambdaInvokeUpdater']['Properties']['TravisBuildNumber'] = ${TRAVIS_BUILD_NUMBER}; json.dump(cfn, sys.stdout, indent=2)" < dist/aws-adm-lambda-s3-retriever.json > dist/aws-adm-lambda-s3-retriever.json.new; mv dist/aws-adm-lambda-s3-retriever.json{.new,}
+- python -c "import json, sys; cfn=json.load(sys.stdin); cfn['Outputs']['LambdaCodeSha256']['Value'] = '$(openssl dgst -binary -sha256 dist/aws-cfn-lambda-updater.zip | openssl base64)'; json.dump(cfn, sys.stdout, indent=2)" < dist/aws-adm-lambda-s3-retriever.json > dist/aws-adm-lambda-s3-retriever.json.new; mv dist/aws-adm-lambda-s3-retriever.json{.new,}
+- python -c "import json, sys; cfn=json.load(sys.stdin); cfn['Outputs']['TravisBuildNumber']['Value'] = ${TRAVIS_BUILD_NUMBER}; json.dump(cfn, sys.stdout, indent=2)" < dist/aws-adm-lambda-s3-retriever.json > dist/aws-adm-lambda-s3-retriever.json.new; mv dist/aws-adm-lambda-s3-retriever.json{.new,}
 # DynamoDB
 - cp deploy/cloudformation-dynamodb.json dist/aws-adm-dynamodb.json
 - python -c "import json, sys; cfn=json.load(sys.stdin); cfn['Outputs']['TravisBuildNumber']['Value'] = ${TRAVIS_BUILD_NUMBER}; json.dump(cfn, sys.stdout, indent=2)" < dist/aws-adm-dynamodb.json > dist/aws-adm-dynamodb.json.new; mv dist/aws-adm-dynamodb.json{.new,}

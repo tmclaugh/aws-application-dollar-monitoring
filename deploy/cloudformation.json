@@ -76,7 +76,7 @@
       "Type": "AWS::CloudFormation::Stack",
       "Properties": {
         "TemplateURL": {
-          "Fn::Sub": "https://s3.amazonaws.com/${DeployS3Bucket}/${ServiceStackName}-s3-retriever.json"
+          "Fn::Sub": "https://s3.amazonaws.com/${DeployS3Bucket}/${ServiceStackName}-lambda-s3-retriever.json"
         },
         "Parameters": {
           "DeployS3Bucket": {
