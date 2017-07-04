@@ -95,10 +95,11 @@ def handler(event, context):
     billing_data_items_total.extend(billing_data_items)
 
     # Start inserting DynamoDB entries
-    dynamodb_client = boto3.client('dynamodb')
+    dynamodb_resource = boto3.resource('dynamodb')
+    dynamodb_table = dynamodb_resource.Table(DYNAMODB_TABLE_NAME)
     dynamodb_client_responses = []
     for item in billing_data_items_total:
-        resp = dynamodb_client.put_item(TableName=DYNAMODB_TABLE_NAME ,Item=item)
+        resp = dynamodb_table.put_item(Item=item)
         _logger.debug(
             'dynamodb response: {}'.format(
                 json.dumps(resp)
