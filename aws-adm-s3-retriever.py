@@ -110,6 +110,6 @@ def handler(event, context):
                 json.dumps(resp)
             )
         )
-        dynamodb_client_responses.apppend(resp)
+        dynamodb_client_responses.append(resp)
 
     return dynamodb_client_responses
