@@ -99,6 +99,11 @@ def handler(event, context):
     dynamodb_table = dynamodb_resource.Table(DYNAMODB_TABLE_NAME)
     dynamodb_client_responses = []
     for item in billing_data_items_total:
+        # DynamoDB can't have empty strings but csv.DictReader uses '' for
+        # empty fields.
+        for key, value in item.items():
+            if value == '':
+                item[key] = None
         resp = dynamodb_table.put_item(Item=item)
         _logger.debug(
             'dynamodb response: {}'.format(
