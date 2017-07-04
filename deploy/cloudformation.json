@@ -92,6 +92,9 @@
           "ServiceTagValue": {
             "Ref": "ServiceStackName"
           },
+          "DynamoDBTableName": {
+            "Ref": "DynamoDBTableName"
+          },
           "DynamoDBTableArn": {
             "Fn::GetAtt": ["DynamoDB", "Outputs.DynamoDBTableArn"]
           }

@@ -51,6 +51,10 @@
       "Type": "String",
       "Description": "Value of service tag."
     },
+    "DynamoDBTableName": {
+      "Type": "String",
+      "Description": "DynamoDB Table Name."
+    },
     "DynamoDBTableArn": {
       "Type": "String",
       "Description": "DynamoDB Table ARN."
@@ -161,6 +165,13 @@
         },
         "Description": {
           "Ref": "LambdaDescription"
+        },
+        "Environment": {
+          "Variables": {
+            "DYNAMODB_TABLE_NAME": {
+              "Ref": "DynamoDBTableName"
+            }
+          }
         },
         "FunctionName": {
           "Ref": "LambdaName"

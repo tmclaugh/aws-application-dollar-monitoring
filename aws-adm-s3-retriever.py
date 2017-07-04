@@ -15,6 +15,8 @@ if os.environ.get('DEBUG'):
     logging.root.setLevel(level=logging.DEBUG)
 _logger = logging.getLogger(__name__)
 
+DYNAMODB_TABLE_NAME = os.environ.get('DYNAMODB_TABLE_NAME')
+
 def _extract_zip_file_object(fileobj, filename):
     '''
     Return an uncompressed file-like string object.
@@ -92,4 +94,16 @@ def handler(event, context):
 
     billing_data_items_total.extend(billing_data_items)
 
-    return billing_data_items_total
+    # Start inserting DynamoDB entries
+    dynamodb_client = boto3.client('dynamodb')
+    dynamodb_client_responses = []
+    for item in billing_data_items_total:
+        resp = dynamodb_client.put_item(TableName=DYNAMODB_TABLE_NAME ,Item=item)
+        _logger.debug(
+            'dynamodb response: {}'.format(
+                json.dumps(resp)
+            )
+        )
+        dynamodb_client_responses.apppend(resp)
+
+    return dynamodb_client_responses
