@@ -96,6 +96,11 @@ def handler(event, context):
     sns_client = boto3.client('sns')
     sns_publish_responses = []
     for item in billing_data_items_total:
+        _logger.debug(
+            'Publishing item to SNS: {}'.format(
+                json.dumps(item)
+            )
+        )
         resp = sns_client.publish(TopicArn=SNS_TOPIC_ARN, Message=json.dumps(item))
         _logger.debug('SNS publish response: ()'.format(json.dumps(resp)))
         sns_publish_responses.append(resp)
