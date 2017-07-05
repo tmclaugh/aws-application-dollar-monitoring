@@ -31,19 +31,25 @@ def handler(event, context):
     for record in event.get('Records'):
         sns_data = record.get('Sns')
         sns_message_string = sns_data.get('Message')
-        sns_message = json.loads(sns_message_string)
-        # DynamoDB can't have empty strings but csv.DictReader uses '' for
-        # empty fields.
-        for key, value in sns_message.items():
-            if value == '':
-                sns_message[key] = None
-        _logger.info('Sending item to DynamoDB: {}'.format(json.dumps(sns_message)))
-        resp = dynamodb_table.put_item(Item=sns_message)
-        _logger.debug(
-            'dynamodb response: {}'.format(
-                json.dumps(resp)
+        sns_messages = json.loads(sns_message_string)
+
+        # Debating batching messages upstream.
+        if type(sns_messages) == dict:
+            sns_messages = [sns_messages]
+
+        for message in sns_messages:
+            # DynamoDB can't have empty strings but csv.DictReader uses '' for
+            # empty fields.
+            for key, value in message.items():
+                if value == '':
+                    message[key] = None
+            _logger.info('Sending item to DynamoDB: {}'.format(json.dumps(message)))
+            resp = dynamodb_table.put_item(Item=message)
+            _logger.debug(
+                'dynamodb response: {}'.format(
+                    json.dumps(resp)
+                )
             )
-        )
-        dynamodb_client_responses.append(resp)
+            dynamodb_client_responses.append(resp)
 
     return dynamodb_client_responses
