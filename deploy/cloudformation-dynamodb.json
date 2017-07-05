@@ -28,7 +28,7 @@
         },
         "AttributeDefinitions": [
           {
-            "AttributeName": "ProductName",
+            "AttributeName": "RecordId",
             "AttributeType": "S"
           },
           {
@@ -38,7 +38,7 @@
         ],
         "KeySchema": [
           {
-            "AttributeName": "ProductName",
+            "AttributeName": "RecordId",
             "KeyType": "HASH"
           },
           {
