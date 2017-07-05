@@ -69,6 +69,7 @@
               "Sid": "DynamoDBWrite",
               "Effect": "Allow",
               "Action": [
+                "dynamodb:BatchWriteItem",
                 "dynamodb:PutItem"
               ],
               "Resource": [

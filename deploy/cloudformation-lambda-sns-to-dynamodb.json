@@ -25,7 +25,7 @@
     "LambdaTimeout": {
       "Type": "String",
       "Description": "Lambda timeout",
-      "Default": "30"
+      "Default": "300"
     },
     "DeployS3Bucket": {
       "Type": "String",
