@@ -36,6 +36,11 @@
       "Description": "SNS Topic for relaying billing event data to datastore.",
       "Default": "aws-adm-datastore-messaging"
     },
+    "SnsToDataFormatterName": {
+      "Type": "String",
+      "Description": "SNS Topic for relaying billing event data for formatting.",
+      "Default": "aws-adm-data-formatting-messaging"
+    },
     "UpdaterCFNStack": {
       "Type": "String",
       "Description": "Name of the updater CFn Stack.",
@@ -98,10 +103,86 @@
             "Ref": "ServiceStackName"
           },
           "SnsPublishIamManagedPolicyArn": {
+            "Fn::GetAtt": ["SnsToDataFormatter", "Outputs.SnsPublishIamManagedPolicyArn"]
+          },
+          "SnsPublishingTopicArn": {
+            "Fn::GetAtt": ["SnsToDataFormatter", "Outputs.SnsTopicArn"]
+          }
+        },
+        "Tags": [
+          {
+            "Key": {
+              "Ref": "ServiceTagKey"
+            },
+            "Value": {
+              "Ref": "ServiceStackName"
+            }
+          }
+        ]
+      }
+    },
+    "SnsToDataFormatter": {
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": {
+          "Fn::Sub": "https://s3.amazonaws.com/${DeployS3Bucket}/${ServiceStackName}-sns-to-billing-data-formatter.json"
+        },
+        "Parameters": {
+          "SnsTopicName": {
+            "Ref": "SnsToDataFormatterName"
+          },
+          "ServiceTagKey": {
+            "Ref": "ServiceTagKey"
+          },
+          "ServiceTagValue": {
+            "Ref": "ServiceStackName"
+          }
+        },
+        "Tags": [
+          {
+            "Key": {
+              "Ref": "ServiceTagKey"
+            },
+            "Value": {
+              "Ref": "ServiceStackName"
+            }
+          }
+        ]
+      }
+    },
+    "BillingDataFormatter": {
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": {
+          "Fn::Sub": "https://s3.amazonaws.com/${DeployS3Bucket}/${ServiceStackName}-lambda-billing-data-formatter.json"
+        },
+        "Parameters": {
+          "DeployS3Bucket": {
+            "Ref": "DeployS3Bucket"
+          },
+          "DeployS3Key": {
+            "Ref": "DeployS3Key"
+          },
+          "BillingS3Bucket": {
+            "Ref": "BillingS3Bucket"
+          },
+          "UpdaterCFNStack": {
+            "Ref": "UpdaterCFNStack"
+          },
+          "ServiceTagKey": {
+            "Ref": "ServiceTagKey"
+          },
+          "ServiceTagValue": {
+            "Ref": "ServiceStackName"
+          },
+          "SnsPublishIamManagedPolicyArn": {
             "Fn::GetAtt": ["SnsToDataStore", "Outputs.SnsPublishIamManagedPolicyArn"]
           },
-          "SnsTopicToDataStoreArn": {
+          "SnsPublishingTopicArn": {
             "Fn::GetAtt": ["SnsToDataStore", "Outputs.SnsTopicArn"]
+          },
+          "SnsSubscriptionTopicArn": {
+            "Fn::GetAtt": ["SnsToDataFormatter", "Outputs.SnsTopicArn"]
           }
         },
         "Tags": [
@@ -173,7 +254,7 @@
           "DynamoDBTableName": {
             "Ref": "DynamoDBTableName"
           },
-          "SnsTopicToDataStoreArn": {
+          "SnsSubscriptionTopicArn": {
             "Fn::GetAtt": ["SnsToDataStore", "Outputs.SnsTopicArn"]
           },
           "DynamoDBWriteManagedPolicyArn": {

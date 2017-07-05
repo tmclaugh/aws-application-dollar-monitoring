@@ -51,7 +51,7 @@
       "Type": "String",
       "Description": "Value of service tag."
     },
-    "SnsTopicToDataStoreArn": {
+    "SnsSubscriptionTopicArn": {
       "Type": "String",
       "Description": "ARN of SNS topic for datastore messages."
     },
@@ -212,7 +212,7 @@
       "Type": "AWS::SNS::Subscription",
       "Properties": {
         "TopicArn": {
-          "Ref": "SnsTopicToDataStoreArn"
+          "Ref": "SnsSubscriptionTopicArn"
         },
         "Protocol": "lambda",
         "Endpoint": {

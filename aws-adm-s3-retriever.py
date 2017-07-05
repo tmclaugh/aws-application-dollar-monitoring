@@ -43,35 +43,6 @@ def _fetch_s3_file_object(bucket, key):
 
     return zip_file
 
-def _get_billing_data_from_event_record(record, start_line_item=None, end_line_item=None):
-    '''
-    Get billing data
-    '''
-    # This will be a list of OrderedDict items from the csv.DictReader()
-    _logger.debug('processing record: {}'.format(json.dumps(record)))
-    s3_info = record.get('s3')
-    s3_bucket = s3_info.get('bucket').get('name')
-    s3_key = s3_info.get('object').get('key')
-
-    billing_file_zip = _fetch_s3_file_object(s3_bucket, s3_key)
-    billing_file = _extract_zip_file_object(
-        billing_file_zip,
-        '.'.join(s3_key.split('.')[:-1])
-    )
-
-    billing_data_items = csv.DictReader(billing_file)
-    billing_data_items_list = []
-    for row in billing_data_items:
-        billing_data_items_list.append(row)
-
-    _logger.debug(
-        'billing data: {}'.format(
-            json.dumps(billing_data_items_list)
-        )
-    )
-
-    return billing_data_items_list[start_line_item:end_line_item]
-
 def handler(event, context):
     '''
     Retrieve billing data from S3 and send data to SNS topic.
@@ -84,32 +55,48 @@ def handler(event, context):
     start_line_item = event.get('StartLineItem')
     end_line_item = event.get('EndLineItem')
 
-    # This will be a list of OrderedDict items from the csv.DictReader()
-    billing_data_items_total = []
     for record in event_records:
-        billing_data_items = _get_billing_data_from_event_record(
-            record,
-            start_line_item,
-            end_line_item
+        _logger.info('processing record: {}'.format(json.dumps(record)))
+        s3_info = record.get('s3')
+        s3_bucket = s3_info.get('bucket').get('name')
+        s3_key = s3_info.get('object').get('key')
+
+        billing_file_zip = _fetch_s3_file_object(s3_bucket, s3_key)
+        billing_file = _extract_zip_file_object(
+            billing_file_zip,
+            '.'.join(s3_key.split('.')[:-1])
         )
-        billing_data_items_total.extend(billing_data_items)
 
-    sns_client = boto3.client('sns')
-    sns_publish_responses = []
+        sns_publish_responses = []
+        file_header = billing_file.readline()
 
-    # batch items to SNS
-    batch_size = SNS_MESSAGE_BATCH_SIZE
-    batched_billing_data = [
-        billing_data_items_total[i:i + batch_size] for i in range(0, len(billing_data_items_total), batch_size)
-    ]
-    for item in batched_billing_data:
-        _logger.debug(
-            'Publishing item to SNS: {}'.format(
-                json.dumps(item)
+        eof_unreached = True
+        while True and eof_unreached:
+            lines = [file_header]
+            for x in range(SNS_MESSAGE_BATCH_SIZE):
+                line = billing_file.readline()
+                if line:
+                    lines.append(line.strip())
+                else:
+                    eof_unreached = False
+                    break
+
+            _logger.info(
+                'Publishing message to SNS: {} billing items'.format(len(lines) - 1)
             )
-        )
-        resp = sns_client.publish(TopicArn=SNS_TOPIC_ARN, Message=json.dumps(item))
-        _logger.debug('SNS publish response: ()'.format(json.dumps(resp)))
-        sns_publish_responses.append(resp)
+            _logger.debug(
+                'Publishing item to SNS: {}'.format(
+                    json.dumps(lines)
+                )
+            )
 
-    return sns_publish_responses
+            sns_client = boto3.client('sns')
+            resp = sns_client.publish(
+                TopicArn=SNS_TOPIC_ARN,
+                Subject='AWS billing data: {} items'.format(len(lines) - 1),
+                Message=json.dumps(lines)
+            )
+            _logger.debug('SNS publish response: ()'.format(json.dumps(resp)))
+            sns_publish_responses.append(resp)
+
+        return sns_publish_responses

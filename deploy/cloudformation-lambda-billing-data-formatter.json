@@ -1,31 +1,31 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "Retrieve AWS Billing info",
+  "Description": "Format billing data info",
   "Parameters": {
     "LambdaName": {
       "Type": "String",
       "Description": "Name of Lambda function",
-      "Default": "aws-adm-s3-retriever"
+      "Default": "aws-adm-billing-data-formatter"
     },
     "LambdaDescription": {
       "Type": "String",
       "Description": "Description of Lambda Function",
-      "Default": "Retrieve AWS Billing info From S3"
+      "Default": "Format billing data for usage down pipe"
     },
     "LambdaHandler": {
       "Type": "String",
       "Description": "Lambda handler function name",
-      "Default": "aws-adm-s3-retriever.handler"
+      "Default": "aws-adm-billing-data-formatter.handler"
     },
     "LambdaMemorySize": {
       "Type": "String",
       "Description": "Lambda memory size",
-      "Default": "1028"
+      "Default": "128"
     },
     "LambdaTimeout": {
       "Type": "String",
       "Description": "Lambda timeout",
-      "Default": "300"
+      "Default": "30"
     },
     "DeployS3Bucket": {
       "Type": "String",
@@ -57,7 +57,11 @@
     },
     "SnsPublishingTopicArn": {
       "Type": "String",
-      "Description": "SNS Topic ARN for publishing data to."
+      "Description": "SNS Topic ARN for publishing data"
+    },
+    "SnsSubscriptionTopicArn": {
+      "Type": "String",
+      "Description": "ARN of SNS topic for datastore messages."
     }
   },
   "Resources": {
@@ -128,17 +132,6 @@
                   "Fn::Sub": "arn:aws:s3:::${BillingS3Bucket}"
                 }
               ]
-            },
-            {
-              "Effect": "Allow",
-              "Action": [
-                "s3:GetObject"
-              ],
-              "Resource": [
-                {
-                  "Fn::Sub": "arn:aws:s3:::${BillingS3Bucket}/${AWS::AccountId}-aws-billing-detailed-line-items-with-resources-and-tags-*.csv.zip"
-                }
-              ]
             }
           ]
         }
@@ -196,6 +189,17 @@
         ]
       }
     },
+    "LambdaPermission": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "LambdaFunction"
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "sns.amazonaws.com"
+      },
+      "Condition": ""
+    },
     "LambdaInvokeUpdater": {
       "Type": "Custom::LambdaUpdaterInvoke",
       "Properties": {
@@ -213,6 +217,22 @@
       },
       "DependsOn": [
         "LambdaFunction"
+      ]
+    },
+    "SnsSubscription": {
+      "Type": "AWS::SNS::Subscription",
+      "Properties": {
+        "TopicArn": {
+          "Ref": "SnsSubscriptionTopicArn"
+        },
+        "Protocol": "lambda",
+        "Endpoint": {
+          "Fn::GetAtt": ["LambdaFunction", "Arn"]
+        }
+      },
+      "DependsOn": [
+        "LambdaIamRole",
+        "LambdaIamPolicy"
       ]
     }
   },
