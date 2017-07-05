@@ -178,6 +178,17 @@
         ]
       }
     },
+    "LambdaPermission": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "LambdaFunction"
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "sns.amazonaws.com"
+      },
+      "Condition": ""
+    },
     "LambdaInvokeUpdater": {
       "Type": "Custom::LambdaUpdaterInvoke",
       "Properties": {
