@@ -37,6 +37,7 @@ def handler(event, context):
         for key, value in sns_message.items():
             if value == '':
                 sns_message[key] = None
+        _logger.info('Sending item to DynamoDB: {}'.format(json.dumps(sns_message)))
         resp = dynamodb_table.put_item(Item=sns_message)
         _logger.debug(
             'dynamodb response: {}'.format(
