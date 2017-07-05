@@ -16,6 +16,7 @@ if os.environ.get('DEBUG'):
 _logger = logging.getLogger(__name__)
 
 SNS_TOPIC_ARN = os.environ.get('SNS_TOPIC_ARN')
+SNS_MESSAGE_BATCH_SIZE = int(os.environ.get('SNS_MESSAGE_BATCH_SIZE', 100))
 
 def _extract_zip_file_object(fileobj, filename):
     '''
@@ -95,7 +96,13 @@ def handler(event, context):
 
     sns_client = boto3.client('sns')
     sns_publish_responses = []
-    for item in billing_data_items_total:
+
+    # batch items to SNS
+    batch_size = SNS_MESSAGE_BATCH_SIZE
+    batched_billing_data = [
+        billing_data_items_total[i:i + batch_size] for i in range(0, len(billing_data_items_total), batch_size)
+    ]
+    for item in batched_billing_data:
         _logger.debug(
             'Publishing item to SNS: {}'.format(
                 json.dumps(item)
